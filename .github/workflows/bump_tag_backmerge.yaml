@@ -39,7 +39,7 @@ jobs:
       - name: prepare-vars
         if: ${{ failure() }}
         run: |
-          echo "REPOSITORY_NAME='${GITHUB_REPOSITORY#*/}'" >> $GITHUB_ENV
+          echo 'REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"' >> $GITHUB_ENV
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
         env:
@@ -62,7 +62,7 @@ jobs:
       - name: prepare-vars
         if: ${{ failure() }}
         run: |
-          echo "REPOSITORY_NAME='${GITHUB_REPOSITORY#*/}'" >> $GITHUB_ENV
+          echo 'REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"' >> $GITHUB_ENV
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
         env:
