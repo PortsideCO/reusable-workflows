@@ -98,7 +98,7 @@ jobs:
         run: |
           yarn install
       - name: Build web
-        if: ! ${{ inputs.build_mobile }}
+        if: ${{ ! inputs.build_mobile }}
         run: |
           yarn build
       - name: Build mobile
