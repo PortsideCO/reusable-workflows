@@ -37,9 +37,9 @@ jobs:
           RELEASE_BRANCHES: stage
           TAG_CONTEXT: branch
       - name: prepare-vars
-        if: "${{ failure() }}"
+        if: ${{ failure() }}
         run: |
-          echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+          echo "REPOSITORY_NAME='${GITHUB_REPOSITORY#*/}'" >> $GITHUB_ENV
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
         env:
@@ -60,9 +60,9 @@ jobs:
           target_branch: develop
           commit_message_template: "[Automated] Back-merge {source_ref} into {target_branch}"
       - name: prepare-vars
-        if: "${{ failure() }}"
+        if: ${{ failure() }}
         run: |
-          echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+          echo "REPOSITORY_NAME='${GITHUB_REPOSITORY#*/}'" >> $GITHUB_ENV
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
         env:
