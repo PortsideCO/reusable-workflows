@@ -43,6 +43,9 @@ on:
       route_cloudfront_id:
         type: string
         required: true
+      slack_channel:
+        type: string
+        required: true
     secrets:
       google_analytics_key:
         required: true
@@ -51,6 +54,8 @@ on:
       sentry_dsn:
         required: true
       rocket_key:
+        required: true
+      slack_webhook:
         required: true
 
 env:
@@ -134,6 +139,7 @@ jobs:
           fi
           echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_ENV"
           echo "UPPER_ENVIRONMENT=${ENVIRONMENT^^}" >> "$GITHUB_ENV"
+          echo "TAG=${GITHUB_SHA::8}" >> "$GITHUB_ENV"
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ always() }}
         env:
@@ -144,5 +150,5 @@ jobs:
           MSG_MINIMAL: true
           SLACK_FOOTER: ""
           SLACK_USERNAME: cicd
-          SLACK_CHANNEL: notice-cicd-nonprod
-          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_NOTIFICATIONS }}
+          SLACK_CHANNEL: ${{ inputs.slack_channel }}
+          SLACK_WEBHOOK: ${{ secrets.slack_webhook }}
