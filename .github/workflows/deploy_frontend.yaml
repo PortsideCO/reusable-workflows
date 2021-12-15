@@ -1,0 +1,148 @@
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Platform to execute on
+        type: string
+        required: false
+        default: '["ubuntu-latest"]'
+      build_mobile:
+        description: If true, build mobile version
+        type: boolean
+        required: false
+        default: true
+      domain:
+        description: Domain suffix
+        type: string
+        required: true
+      domain_prefix:
+        description: Domain prefix
+        type: string
+        required: true
+      environment:
+        type: string
+        required: true
+      node_env:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+      iam_role:
+        type: string
+        required: true
+      aws_region:
+        type: string
+        required: true
+      s3_backet:
+        type: string
+        required: true
+      static_cloudfront_id:
+        type: string
+        required: true
+      route_cloudfront_id:
+        type: string
+        required: true
+    secrets:
+      google_analytics_key:
+        required: true
+      google_maps_key:
+        required: true
+      sentry_dsn:
+        required: true
+      rocket_key:
+        required: true
+
+env:
+  NODE_PATH: ./src
+  NODE_OPTIONS: "--max_old_space_size=4096"
+  PUBLIC_URL: https://${{ inputs.domain_prefix }}.${{ inputs.domain }}
+  REACT_APP_URL: app.${{ inputs.domain }}
+  REACT_APP_API_URL: https://api.${{ inputs.domain }}/api
+  REACT_APP_NODE_ENV: ${{ inputs.node_env }}
+  REACT_APP_VERSION: ${{ inputs.version }}
+  REACT_APP_GOOGLE_ANALYTICS_KEY: ${{ secrets.google_analytics_key }}
+  REACT_APP_GOOGLE_MAPS_KEY: ${{ secrets.google_maps_key }}
+  REACT_APP_SENTRY_API_DSN: ${{ secrets.sentry_dsn }}
+  REACT_APP_LOG_ROCKET_KEY: ${{ secrets.rocket_key }}
+
+jobs:
+  build_deploy:
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      id-token: write
+      contents: read
+    container:
+      image: public.ecr.aws/docker/library/node:14-buster
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install aws-cli
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: |
+          echo "::set-output name=dir::$(yarn cache dir)"
+      - uses: actions/cache@v2
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+      - name: Install packages
+        run: |
+          yarn install
+      - name: Build web
+        if: ! ${{ inputs.build_mobile }}
+        run: |
+          yarn build
+      - name: Build mobile
+        if: ${{ inputs.build_mobile }}
+        run: |
+          yarn build:mobilev2
+      - name: Validate build
+        run: |
+          if [ -f build/index.html ]; then
+            echo "Build is valid"
+            ls -R build/
+          else
+            echo "Build is not valid"
+            ls -R build/
+            exit 1
+          fi
+      - uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ inputs.iam_role }}
+          aws-region: ${{ inputs.aws_region }}
+      - name: Deploy
+        run: |
+          aws s3 sync --cache-control 'max-age=604800' --acl public-read --delete --exclude index.html build/ s3://${{ inputs.s3_backet }}
+          aws s3 sync --cache-control 'no-store' --acl public-read --delete build/ s3://${{ inputs.s3_backet }}
+          aws cloudfront create-invalidation --distribution-id ${{ inputs.static_cloudfront_id }} --paths "/*"
+          aws cloudfront create-invalidation --distribution-id ${{ inputs.route_cloudfront_id }} --paths "/*"
+      - name: prepare-vars
+        if: ${{ always() }}
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          if [[ ${{ job.status }} == success ]]; then
+            echo "SLACK_MSG=Deploy to `${{ inputs.s3_backet }}` has been successful" >> $GITHUB_ENV
+            echo "EMOJI=:rocket:" >> $GITHUB_ENV
+          else
+            echo "SLACK_MSG=Deploy to `${{ inputs.s3_backet }}` has been failed" >> $GITHUB_ENV
+            echo "EMOJI=:broken_heart:" >> $GITHUB_ENV
+          fi
+          echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_ENV"
+          echo "UPPER_ENVIRONMENT=${ENVIRONMENT^^}" >> "$GITHUB_ENV"
+      - uses: rtCamp/action-slack-notify@v2
+        if: ${{ always() }}
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_TITLE: "`${{ env.REPOSITORY_NAME }}`   ${{ env.EMOJI }}   *${{ env.UPPER_ENVIRONMENT }}*"
+          SLACK_MESSAGE: "\n<https://github.com/${{ github.repository }}/tree/${{ env.TAG }}|${{ env.TAG }}> ${{ env.SLACK_MSG }}\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n• <https://sentry.io/organizations/portside-inc/issues/?project=5965214&statsPeriod=1h|Sentry>"
+          SLACK_ICON_EMOJI: ":small_airplane:"
+          MSG_MINIMAL: true
+          SLACK_FOOTER: ""
+          SLACK_USERNAME: cicd
+          SLACK_CHANNEL: notice-cicd-nonprod
+          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_NOTIFICATIONS }}
