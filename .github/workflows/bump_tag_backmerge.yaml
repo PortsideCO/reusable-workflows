@@ -5,11 +5,10 @@ on:
         description: "Name of the slack channel"
         required: true
         type: string
+    secrets:
       slack_webhook:
         description: "Slack webhiik URL to send notification"
         required: true
-        type: string
-    secrets:
       token:
         required: true
 
@@ -19,7 +18,7 @@ env:
   SLACK_FOOTER: ""
   SLACK_USERNAME: cicd
   SLACK_CHANNEL: ${{ inputs.slack_channel }}
-  SLACK_WEBHOOK: ${{ inputs.slack_webhook }}
+  SLACK_WEBHOOK: ${{ secrets.slack_webhook }}
 
 jobs:
   bump-tag:
