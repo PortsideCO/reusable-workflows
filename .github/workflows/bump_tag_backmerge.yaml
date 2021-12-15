@@ -19,12 +19,13 @@ env:
   SLACK_USERNAME: cicd
   SLACK_CHANNEL: ${{ inputs.slack_channel }}
   SLACK_WEBHOOK: ${{ secrets.slack_webhook }}
-  REPOSITORY: ${GITHUB_REPOSITORY#*/}
-  BRANCH: ${GITHUB_REF#refs/heads/}
 
 jobs:
   bump-tag:
     runs-on: ubuntu-latest
+    env:
+      REPOSITORY: ${GITHUB_REPOSITORY#*/}
+      BRANCH: ${GITHUB_REF#refs/heads/}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -46,6 +47,9 @@ jobs:
 
   back-merge:
     runs-on: ubuntu-latest
+    env:
+      REPOSITORY: ${GITHUB_REPOSITORY#*/}
+      BRANCH: ${GITHUB_REF#refs/heads/}
     steps:
       - uses: actions/checkout@v2
         with:
