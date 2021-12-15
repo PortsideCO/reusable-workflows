@@ -1,0 +1,67 @@
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version of the new release"
+        required: true
+        type: string
+      slack_channel:
+        description: "Name of the slack channel"
+        required: true
+        type: string
+    secrets:
+      token:
+        description: "GITHUB_TOKEN"
+        required: true
+      username:
+        description: "Username to Git configure"
+        required: true
+      email:
+        description: "Email to Git configure"
+        required: true
+      slack_webhook:
+        description: "Slack webhiik URL to send notification"
+        required: true
+
+jobs:
+  build_stage:
+    runs-on: ubuntu-latest
+    env:
+      TAG: "v${{ inputs.version }}.0"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.token }}
+          ref: "stage"
+          fetch-depth: 0
+      - name: Validate version
+        run: |
+          set -ex
+          if [[ ${{ inputs.version }} =~ ^[[:digit:]]+\.[[:digit:]]+$ ]] ;
+              then  echo 'Version validation passed' ;
+          else
+              echo "Wrong version - ${{ inputs.version }}" ; exit 1
+          fi
+      - name: Merge develop and create tag
+        run: |
+          git config --local user.name "${{ secrets.username }}"
+          git config --local user.email "${{ secrets.email }}"
+          git merge --no-ff --strategy-option=theirs origin/develop -m "Release ${{ inputs.version }}"
+          git tag ${{ env.TAG }}
+          git push --atomic origin stage ${{ env.TAG }}
+      - name: prepare-vars
+        if: ${{ failure() }}
+        run: |
+          echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_ENV"
+      - uses: rtCamp/action-slack-notify@v2
+        if: ${{ failure() }}
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_TITLE: "`${{ env.REPOSITORY_NAME }}`   :sos:"
+          SLACK_MESSAGE: "\nBuild stage for *${{ inputs.version }}* has been failed\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
+          MSG_MINIMAL: "true"
+          SLACK_ICON_EMOJI: ":small_airplane:"
+          SLACK_FOOTER: ""
+          SLACK_USERNAME: cicd
+          SLACK_CHANNEL: ${{ inputs.slack_channel }}
+          SLACK_WEBHOOK: ${{ secrets.slack_webhook }}
