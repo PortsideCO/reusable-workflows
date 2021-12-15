@@ -23,9 +23,6 @@ env:
 jobs:
   bump-tag:
     runs-on: ubuntu-latest
-    env:
-      REPOSITORY: ${GITHUB_REPOSITORY#*/}
-      BRANCH: ${GITHUB_REF#refs/heads/}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -38,18 +35,18 @@ jobs:
           WITH_V: true
           RELEASE_BRANCHES: stage
           TAG_CONTEXT: branch
+      - name: prepare-vars
+        run: |
+          echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_TITLE: "`${{ env.REPOSITORY }}`   :sos:   *${{ env.BRANCH }}*"
+          SLACK_TITLE: "`${{ env.REPOSITORY_NAME }}`   :sos:"
           SLACK_MESSAGE: "\nTag ${{ steps.tag.outputs.new_tag }} was not created\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
 
   back-merge:
     runs-on: ubuntu-latest
-    env:
-      REPOSITORY: ${GITHUB_REPOSITORY#*/}
-      BRANCH: ${GITHUB_REF#refs/heads/}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -60,9 +57,12 @@ jobs:
           source_ref: stage
           target_branch: develop
           commit_message_template: "[Automated] Back-merge {source_ref} into {target_branch}"
+      - name: prepare-vars
+        run: |
+          echo "REPOSITORY_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
       - uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_TITLE: "`${{ env.REPOSITORY }}`   :sos:   *${{ env.BRANCH }}*"
+          SLACK_TITLE: "`${{ env.REPOSITORY_NAME }}`   :sos:"
           SLACK_MESSAGE: "\nBack merge has been failed\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
