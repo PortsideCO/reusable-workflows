@@ -19,6 +19,8 @@ env:
   SLACK_USERNAME: cicd
   SLACK_CHANNEL: ${{ inputs.slack_channel }}
   SLACK_WEBHOOK: ${{ secrets.slack_webhook }}
+  REPOSITORY: ${GITHUB_REPOSITORY#*/}
+  BRANCH: ${GITHUB_REF#refs/heads/}
 
 jobs:
   bump-tag:
@@ -39,7 +41,7 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_TITLE: "`${GITHUB_REPOSITORY#*/}`   :sos:   *${GITHUB_REF#refs/heads/}*"
+          SLACK_TITLE: "`${{ env.REPOSITORY }}`   :sos:   *${{ env.BRANCH }}*"
           SLACK_MESSAGE: "\nTag ${{ steps.tag.outputs.new_tag }} was not created\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
 
   back-merge:
@@ -58,5 +60,5 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_COLOR: ${{ job.status }}
-          SLACK_TITLE: "`${GITHUB_REPOSITORY#*/}`   :sos:   *${GITHUB_REF#refs/heads/}*"
-          SLACK_MESSAGE: "\nBack merge failed\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
+          SLACK_TITLE: "`${{ env.REPOSITORY }}`   :sos:   *${{ env.BRANCH }}*"
+          SLACK_MESSAGE: "\nBack merge has been failed\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
