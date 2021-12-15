@@ -10,9 +10,6 @@ on:
         required: true
         type: string
     secrets:
-      slack_webhook:
-        description: "Slack webhiik URL to send notification"
-        required: true
       token:
         description: "GITHUB_TOKEN"
         required: true
@@ -21,6 +18,9 @@ on:
         required: true
       email:
         description: "Email to Git configure"
+        required: true
+      slack_webhook:
+        description: "Slack webhiik URL to send notification"
         required: true
 
 jobs:
@@ -58,7 +58,7 @@ jobs:
         env:
           SLACK_COLOR: ${{ job.status }}
           SLACK_TITLE: "`${{ env.REPOSITORY_NAME }}`   :sos:"
-          SLACK_MESSAGE: "\nBuild stage for ${{ inputs.version }} has been failed\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
+          SLACK_MESSAGE: "\nBuild stage for *${{ inputs.version }}* has been failed\n\nDetails:\n• <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GH Action>\n"
           MSG_MINIMAL: "true"
           SLACK_ICON_EMOJI: ":small_airplane:"
           SLACK_FOOTER: ""
