@@ -5,7 +5,7 @@ on:
         description: Platform to execute on
         type: string
         required: false
-        default: '["ubuntu-latest"]'
+        default: ubuntu-latest
       build_mobile:
         description: If true, build mobile version
         type: boolean
