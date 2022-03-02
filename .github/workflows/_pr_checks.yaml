@@ -8,7 +8,7 @@ jobs:
   super-linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: github/super-linter/slim@v4
         env:
           VALIDATE_ALL_CODEBASE: true
@@ -25,7 +25,7 @@ jobs:
   detect-secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: reviewdog/action-detect-secrets@master
         with:
           detect_secrets_flags: "--disable-plugin Base64HighEntropyString"
